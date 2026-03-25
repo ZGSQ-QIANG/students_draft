@@ -1,0 +1,104 @@
+.DS_Store
+__pycache__/
+.pytest_cache/
+.venv/
+node_modules/
+dist/
+backend/student_portrait.db
+backend/storage/
+.env
+backend/.env
+backend/.env.example
+
+# --------------------
+# 1. 安全/隐私文件 (最重要！)
+# --------------------
+.env
+.env.*
+*.key
+secrets.json
+
+# --------------------
+# 2. Python 缓存和编译文件 (不需要上传)
+# --------------------
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 虚拟环境 (Virtual Environments)
+venv/
+.venv/
+env/
+ENV/
+backend/venv/
+
+# 分发与构建
+dist/
+build/
+*.egg-info/
+
+# 数据库 (本地开发文件，包含敏感数据)
+*.db
+*.sqlite
+*.sqlite3
+
+# Jupyter Notebook 检查点
+.ipynb_checkpoints
+
+# ==========================
+# Node.js / Vue (Frontend)
+# ==========================
+node_modules/
+frontend/node_modules/
+
+# npm/yarn 日志
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# 构建输出 (Vue build output)
+frontend/dist/
+frontend/dist-ssr/
+
+# 编辑器本地配置
+.eslintcache
+
+# ==========================
+# 环境变量 & 敏感信息 (CRITICAL)
+# ==========================
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+
+# ==========================
+# IDE & 编辑器配置
+# ==========================
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ==========================
+# 操作系统文件
+# ==========================
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ==========================
+# 项目特定目录
+# ==========================
+# 忽略临时上传文件夹中的内容
+temp_uploads/*
+!temp_uploads/.gitkeep
+
+# 忽略临时日志目录
+logs/
+*.log
+
+
+*.pdf
