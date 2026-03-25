@@ -42,7 +42,7 @@ frontend/
 ### 1. 启动后端
 
 ```bash
-cd /Users/zgsq/students_draft/backend
+cd /students_draft/backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e .
@@ -58,7 +58,7 @@ uvicorn app.main:app --reload
 ### 2. 启动前端
 
 ```bash
-cd /Users/zgsq/students_draft/frontend
+cd /students_draft/frontend
 npm install
 cp .env.example .env
 npm run dev
@@ -84,7 +84,7 @@ npm run dev
 如安装依赖后，可继续执行：
 
 ```bash
-cd /Users/zgsq/students_draft/backend
+cd /students_draft/backend
 pytest
 ```
 
