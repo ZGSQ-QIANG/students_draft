@@ -5,6 +5,7 @@ from typing import Any
 
 from app.core.config import get_settings
 from app.services.llm_provider import build_provider
+from app.services.portrait import BEHAVIOR_TAGS, CAPABILITY_TAGS, JOB_DIRECTION_TAGS, STUDENT_TYPES
 
 
 class LLMExtractor:
@@ -45,5 +46,11 @@ class LLMExtractor:
                 json.dumps(normalized_payload, ensure_ascii=False),
                 "原始模块:",
                 json.dumps(sections, ensure_ascii=False),
+                "硬性约束：标签必须从给定词典中选择，禁止自造词。",
+                f"student_type 可选：{STUDENT_TYPES}",
+                f"capability_tags 可选：{CAPABILITY_TAGS}",
+                f"behavior_tags 可选：{BEHAVIOR_TAGS}",
+                f"job_direction_tags 可选：{JOB_DIRECTION_TAGS}",
+                "仅输出 JSON 对象，不要输出解释。",
             ]
         )

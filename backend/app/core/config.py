@@ -16,8 +16,8 @@ class Settings(BaseSettings):
     storage_root: str = "./storage"
     llm_provider: str = "openai"
     llm_api_key: str = ""
-    llm_base_url: str = "https://api.openai.com/v1"
-    llm_model: str = "gpt-4o-mini"
+    llm_base_url: str = "https://chat.ecnu.edu.cn/open/api/v1 "
+    llm_model: str = "ecnu-max"
     llm_timeout_seconds: int = 60
     llm_temperature: float = 0.2
     embedding_dimension: int = 8

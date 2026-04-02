@@ -60,6 +60,8 @@ class PortraitEngine:
             tags.append("组织协调")
         if any(token in all_text for token in ["运营", "活动", "内容"]):
             tags.append("业务运营")
+        print("===================")
+        print(tags)
         return tags or ["组织协调"]
 
     def _derive_behavior_tags(self, payload: dict[str, Any]) -> list[str]:

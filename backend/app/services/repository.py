@@ -46,17 +46,28 @@ class ResumeRepository:
             allowed = {column.name for column in model_cls.__table__.columns} - {"id", "resume_id", "created_at", "updated_at"}
             return {key: value for key, value in data.items() if key in allowed}
 
-        if payload.get("basic_info"):
-            resume.basic_info = StudentBasicInfo(**sanitize(StudentBasicInfo, payload["basic_info"]))
-        else:
-            resume.basic_info = None
+        def upsert_single(rel_name: str, model_cls: type, data: dict[str, Any] | None) -> None:
+            current_obj = getattr(resume, rel_name)
+            if not data:
+                setattr(resume, rel_name, None)
+                return
+
+            clean = sanitize(model_cls, data)
+            if current_obj is None:
+                setattr(resume, rel_name, model_cls(**clean))
+                return
+
+            for key, value in clean.items():
+                setattr(current_obj, key, value)
+
+        upsert_single("basic_info", StudentBasicInfo, payload.get("basic_info"))
 
         resume.educations = [StudentEducation(**sanitize(StudentEducation, item)) for item in payload.get("educations", [])]
         resume.internships = [StudentInternship(**sanitize(StudentInternship, item)) for item in payload.get("internships", [])]
         resume.projects = [StudentProject(**sanitize(StudentProject, item)) for item in payload.get("projects", [])]
         resume.awards = [StudentAward(**sanitize(StudentAward, item)) for item in payload.get("awards", [])]
         resume.skills = [StudentSkill(**sanitize(StudentSkill, item)) for item in payload.get("skills", [])]
-        resume.portrait = StudentPortrait(**sanitize(StudentPortrait, payload["portrait"])) if payload.get("portrait") else None
+        upsert_single("portrait", StudentPortrait, payload.get("portrait"))
 
     def replace_embeddings(self, resume: Resume, items: list[dict[str, Any]]) -> None:
         resume.embeddings = [EmbeddingIndex(**item) for item in items]
