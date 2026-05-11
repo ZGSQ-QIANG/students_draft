@@ -4,8 +4,16 @@ import json
 from typing import Any
 
 from app.core.config import get_settings
+from app.services.dictionaries import (
+    ACADEMIC_POTENTIAL_TAGS,
+    BEHAVIOR_TAGS,
+    CAPABILITY_TAGS,
+    JOB_DIRECTION_TAGS,
+    METHOD_TAGS,
+    RESEARCH_DIRECTION_TAGS,
+    STUDENT_TYPES,
+)
 from app.services.llm_provider import build_provider
-from app.services.portrait import BEHAVIOR_TAGS, CAPABILITY_TAGS, JOB_DIRECTION_TAGS, STUDENT_TYPES
 
 
 class LLMExtractor:
@@ -22,7 +30,7 @@ class LLMExtractor:
             enriched.append({**rule_payload, **llm_payload})
         return enriched
 
-    def generate_portrait(self, normalized_payload: dict[str, Any], sections: dict[str, list[str]]) -> dict[str, Any]:
+    def generate_portrait(self, normalized_payload: dict[str, Any], sections: dict[str, list[str]], mode: str = "student") -> dict[str, Any]:
         prompt = self._build_portrait_prompt(normalized_payload, sections)
         return self.provider.extract(prompt, "portrait")
 
@@ -40,17 +48,19 @@ class LLMExtractor:
 
     @staticmethod
     def _build_portrait_prompt(normalized_payload: dict[str, Any], sections: dict[str, list[str]]) -> str:
-        return "\n".join(
-            [
-                "请基于以下学生简历信息生成画像候选。",
-                json.dumps(normalized_payload, ensure_ascii=False),
-                "原始模块:",
-                json.dumps(sections, ensure_ascii=False),
-                "硬性约束：标签必须从给定词典中选择，禁止自造词。",
-                f"student_type 可选：{STUDENT_TYPES}",
-                f"capability_tags 可选：{CAPABILITY_TAGS}",
-                f"behavior_tags 可选：{BEHAVIOR_TAGS}",
-                f"job_direction_tags 可选：{JOB_DIRECTION_TAGS}",
-                "仅输出 JSON 对象，不要输出解释。",
-            ]
-        )
+        lines = [
+            "请基于以下学生简历信息生成画像候选。",
+            json.dumps(normalized_payload, ensure_ascii=False),
+            "原始模块:",
+            json.dumps(sections, ensure_ascii=False),
+            "硬性约束：标签必须从给定词典中选择，禁止自造词。",
+            f"student_type 可选：{STUDENT_TYPES}",
+            f"research_direction_tags 可选：{RESEARCH_DIRECTION_TAGS}",
+            f"method_tags 可选：{METHOD_TAGS}",
+            f"academic_potential_tags 可选：{ACADEMIC_POTENTIAL_TAGS}",
+            f"capability_tags 可选：{CAPABILITY_TAGS}",
+            f"behavior_tags 可选：{BEHAVIOR_TAGS}",
+            f"job_direction_tags 可选：{JOB_DIRECTION_TAGS}",
+        ]
+        lines.append("仅输出 JSON 对象，不要输出解释。")
+        return "\n".join(lines)

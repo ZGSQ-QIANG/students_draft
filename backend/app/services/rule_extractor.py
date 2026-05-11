@@ -3,7 +3,12 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from app.services.dictionaries import DEGREES, MAJOR_KEYWORDS, SCHOOL_KEYWORDS, SKILL_KEYWORD_MAP
+from app.services.dictionaries import (
+    DEGREES,
+    MAJOR_KEYWORDS,
+    SCHOOL_KEYWORDS,
+    SKILL_KEYWORD_MAP,
+)
 
 
 class RuleExtractor:
@@ -17,17 +22,29 @@ class RuleExtractor:
         joined = "\n".join(sum(sections.values(), []))
         basic_text = "\n".join(sections.get("basic_info", [])) or joined[:500]
         basic = self._extract_basic_info(basic_text, joined)
-        education = [self._extract_education(text) for text in sections.get("education", []) if text.strip()]
-        internships = [self._extract_experience(text, "internship") for text in sections.get("internship", []) if text.strip()]
-        projects = [self._extract_experience(text, "project") for text in sections.get("project", []) if text.strip()]
-        awards = [self._extract_award(text) for text in sections.get("awards", []) if text.strip()]
-        skills = self._extract_skills("\n".join(sections.get("skills", [])) + "\n" + joined)
+        education = [self._extract_education(text) for text in self._split_entries(sections.get("education", [])) if text.strip()]
+        internships = [self._extract_experience(text, "internship") for text in self._split_entries(sections.get("internship", [])) if text.strip()]
+        projects = [self._extract_experience(text, "project") for text in self._split_entries(sections.get("project", [])) if text.strip()]
+        award_texts = [text for text in self._split_entries(sections.get("award", [])) if text.strip()]
+        paper_texts = [text for text in self._split_entries(sections.get("paper", [])) if text.strip()]
+        patent_texts = [text for text in self._split_entries(sections.get("patent", [])) if text.strip()]
+        competition_texts = [text for text in self._split_entries(sections.get("competition", [])) if text.strip()]
+        certificate_texts = [text for text in self._split_entries(sections.get("certificate", [])) if text.strip()]
+        awards = [self._extract_award(text) for text in award_texts]
+        papers = [self._extract_paper(text) for text in paper_texts]
+        patents = [self._extract_patent(text) for text in patent_texts]
+        competitions = [self._extract_competition(text) for text in competition_texts]
+        skill_text = "\n".join(sections.get("skills", [])) + "\n" + "\n".join(certificate_texts) + "\n" + joined
+        skills = self._extract_skills(skill_text)
         return {
             "basic_info": basic,
             "educations": education,
             "internships": internships,
             "projects": projects,
             "awards": awards,
+            "papers": papers,
+            "patents": patents,
+            "competitions": competitions,
             "skills": skills,
         }
 
@@ -39,6 +56,11 @@ class RuleExtractor:
         highest_degree = next((degree for degree in DEGREES if degree in full_text), None)
         graduation_date = self._guess_graduation(full_text)
         city = next((line for line in lines if any(token in line for token in ["市", "省", "北京", "上海", "广州", "深圳"])), None)
+        research_interest = next((line for line in lines if any(token in line for token in ["研究兴趣", "研究方向", "学术兴趣"])), None)
+        target_research_direction = next(
+            (line for line in lines if any(token in line for token in ["目标方向", "意向方向", "报考方向"])),
+            None,
+        )
         return {
             "name": name,
             "phone": phone,
@@ -46,6 +68,8 @@ class RuleExtractor:
             "highest_degree": highest_degree,
             "graduation_date": graduation_date,
             "city": city,
+            "research_interest": self._clean_labeled_text(research_interest),
+            "target_research_direction": self._clean_labeled_text(target_research_direction),
             "evidence_json": {"source": "rule", "basic_text": basic_text[:300]},
         }
 
@@ -54,7 +78,7 @@ class RuleExtractor:
         if not school_name:
             school_name = next((line for line in text.splitlines() if any(key in line for key in SCHOOL_KEYWORDS)), None)
         degree = next((degree for degree in DEGREES if degree in text), None)
-        major = next((keyword for keyword in MAJOR_KEYWORDS if keyword in text), None)
+        major = next((keyword for keyword in sorted(MAJOR_KEYWORDS, key=len, reverse=True) if keyword in text), None)
         dates = self.date_pattern.findall(text)
         flat_dates = [item if isinstance(item, str) else next((x for x in item if x), "") for item in dates]
         gpa_raw = self._extract_gpa(text)
@@ -108,6 +132,49 @@ class RuleExtractor:
             "evidence_json": {"source": "rule", "text": text[:300]},
         }
 
+    def _extract_paper(self, text: str) -> dict[str, Any]:
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
+        dates = self.date_pattern.findall(text)
+        flat_dates = [item if isinstance(item, str) else next((x for x in item if x), "") for item in dates]
+        publication_type = next((label for label in ["SCI", "EI", "核心", "期刊", "会议", "论文"] if label in text), None)
+        status = next((label for label in ["发表", "录用", "在投", "见刊"] if label in text), None)
+        return {
+            "title": lines[0] if lines else text[:80],
+            "role": next((label for label in ["第一作者", "共同作者", "通讯作者", "成员"] if label in text), None),
+            "publication_type": publication_type,
+            "status": status,
+            "publish_date": flat_dates[0] if flat_dates else None,
+            "description": text,
+            "evidence_json": {"source": "rule", "text": text[:300]},
+        }
+
+    def _extract_patent(self, text: str) -> dict[str, Any]:
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
+        dates = self.date_pattern.findall(text)
+        flat_dates = [item if isinstance(item, str) else next((x for x in item if x), "") for item in dates]
+        return {
+            "patent_name": lines[0] if lines else text[:80],
+            "patent_type": next((label for label in ["发明专利", "实用新型", "软件著作权", "专利"] if label in text), None),
+            "role": next((label for label in ["第一发明人", "发明人", "成员"] if label in text), None),
+            "status": next((label for label in ["授权", "受理", "申请", "公开"] if label in text), None),
+            "application_date": flat_dates[0] if flat_dates else None,
+            "description": text,
+            "evidence_json": {"source": "rule", "text": text[:300]},
+        }
+
+    def _extract_competition(self, text: str) -> dict[str, Any]:
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
+        dates = self.date_pattern.findall(text)
+        flat_dates = [item if isinstance(item, str) else next((x for x in item if x), "") for item in dates]
+        return {
+            "competition_name": lines[0] if lines else text[:80],
+            "award_level": next((level for level in ["国家级", "省级", "校级", "一等奖", "二等奖", "三等奖"] if level in text), None),
+            "role": next((label for label in ["队长", "负责人", "成员", "主讲"] if label in text), None),
+            "competition_date": flat_dates[0] if flat_dates else None,
+            "description": text,
+            "evidence_json": {"source": "rule", "text": text[:300]},
+        }
+
     def _extract_skills(self, text: str) -> list[dict[str, Any]]:
         found: dict[str, dict[str, Any]] = {}
         lower = text.lower()
@@ -121,6 +188,21 @@ class RuleExtractor:
                 }
         return list(found.values())
 
+    def _split_entries(self, items: list[str] | None) -> list[str]:
+        if not items:
+            return []
+        entries: list[str] = []
+        for item in items:
+            blocks = [
+                block.strip()
+                for block in re.split(r"\n\s*\n|(?=^[•●·-]\s*)|(?=^\d+[.、]\s*)", item, flags=re.MULTILINE)
+                if block.strip()
+            ]
+            if not blocks:
+                continue
+            entries.extend(blocks)
+        return entries
+
     def _extract_gpa(self, text: str) -> str | None:
         match = self.gpa_pattern.search(text)
         if not match:
@@ -133,6 +215,16 @@ class RuleExtractor:
         if not flat_dates:
             return None
         return flat_dates[-1]
+
+    @staticmethod
+    def _contains_keywords(text: str, keywords: list[str]) -> bool:
+        return any(keyword.lower() in text.lower() for keyword in keywords)
+
+    @staticmethod
+    def _clean_labeled_text(value: str | None) -> str | None:
+        if not value:
+            return None
+        return re.sub(r"^(研究兴趣|研究方向|学术兴趣|目标方向|意向方向|报考方向)[:：]?\s*", "", value).strip()
 
     @staticmethod
     def _first_match(pattern: re.Pattern[str], text: str) -> str | None:

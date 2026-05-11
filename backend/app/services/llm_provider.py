@@ -23,7 +23,7 @@ SCHEMA_HINTS = {
 
 
 class ModelProvider:
-    model_name = "unknown"
+    model_name = "ecnu-max"
 
     def extract(self, prompt: str, schema_name: str) -> dict[str, Any]:
         raise NotImplementedError

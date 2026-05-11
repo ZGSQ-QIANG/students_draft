@@ -1,0 +1,204 @@
+:root {
+  --atlas-ink: #1f2a24;
+  --atlas-muted: #6f675d;
+  --atlas-paper: #fffaf0;
+  --atlas-panel: rgba(255, 252, 244, 0.9);
+  --atlas-line: rgba(85, 70, 47, 0.14);
+  --atlas-green: #1f6f68;
+  --atlas-blue: #315c9f;
+  --atlas-amber: #d97706;
+  --atlas-red: #9f3a38;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  color: var(--atlas-ink);
+  background:
+    radial-gradient(circle at 0 0, rgba(217, 119, 6, 0.12), transparent 30%),
+    radial-gradient(circle at 100% 0, rgba(31, 111, 104, 0.12), transparent 32%),
+    linear-gradient(135deg, #f8efe0 0%, #f7f3e9 48%, #eef5ee 100%);
+  font-family: 'Songti SC', 'Noto Serif SC', 'STSong', Georgia, serif;
+}
+
+.app-shell.ant-layout {
+  min-height: 100vh;
+  background: transparent;
+}
+
+.app-sider.ant-layout-sider {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: auto;
+  border-right: 1px solid var(--atlas-line);
+  background:
+    linear-gradient(180deg, rgba(255, 252, 244, 0.98), rgba(250, 242, 226, 0.94)),
+    repeating-linear-gradient(0deg, rgba(31, 42, 36, 0.035) 0 1px, transparent 1px 20px);
+  box-shadow: 12px 0 40px rgba(57, 45, 26, 0.08);
+}
+
+.app-brand {
+  padding: 28px 24px 22px;
+}
+
+.app-brand-kicker.ant-typography {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--atlas-amber);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.app-brand-title.ant-typography {
+  margin: 0;
+  color: var(--atlas-ink);
+  font-family: Georgia, 'Times New Roman', 'Songti SC', serif;
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+}
+
+.app-brand-subtitle.ant-typography {
+  display: block;
+  margin-top: 7px;
+  color: var(--atlas-muted);
+}
+
+.app-menu.ant-menu {
+  padding: 0 12px;
+  border-inline-end: none;
+  background: transparent;
+}
+
+.app-menu .ant-menu-item {
+  height: 46px;
+  margin: 6px 0;
+  color: #34433a;
+  border-radius: 16px;
+  font-weight: 700;
+}
+
+.app-menu .ant-menu-item-selected {
+  color: var(--atlas-green);
+  background: rgba(31, 111, 104, 0.12);
+  box-shadow: inset 3px 0 0 var(--atlas-green);
+}
+
+.app-menu .ant-menu-item:hover {
+  color: var(--atlas-green) !important;
+  background: rgba(31, 111, 104, 0.08) !important;
+}
+
+.app-header.ant-layout-header {
+  position: sticky;
+  z-index: 10;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 72px;
+  padding: 0 28px;
+  border-bottom: 1px solid var(--atlas-line);
+  background: rgba(255, 252, 244, 0.82);
+  backdrop-filter: blur(16px);
+}
+
+.app-header-title.ant-typography {
+  color: var(--atlas-muted);
+  font-weight: 700;
+}
+
+.app-logout.ant-btn {
+  height: 38px;
+  border-color: rgba(31, 111, 104, 0.2);
+  border-radius: 14px;
+  color: var(--atlas-ink);
+  background: rgba(255, 255, 255, 0.7);
+  font-weight: 700;
+}
+
+.app-content.ant-layout-content {
+  padding: 24px;
+  background: transparent;
+}
+
+.ant-card {
+  border-color: var(--atlas-line);
+  border-radius: 22px;
+  background: var(--atlas-panel);
+  box-shadow: 0 14px 38px rgba(57, 45, 26, 0.08);
+}
+
+.ant-card-head {
+  border-bottom-color: rgba(85, 70, 47, 0.1);
+  color: var(--atlas-ink);
+  font-family: Georgia, 'Times New Roman', 'Songti SC', serif;
+  font-weight: 900;
+}
+
+.ant-typography h1,
+.ant-typography h2,
+.ant-typography h3,
+.ant-typography h4,
+h1.ant-typography,
+h2.ant-typography,
+h3.ant-typography,
+h4.ant-typography {
+  color: var(--atlas-ink);
+  font-family: Georgia, 'Times New Roman', 'Songti SC', serif;
+  font-weight: 900;
+}
+
+.ant-btn-primary {
+  border-color: var(--atlas-green);
+  background: linear-gradient(135deg, var(--atlas-green), var(--atlas-blue));
+  box-shadow: 0 8px 20px rgba(31, 111, 104, 0.18);
+}
+
+.ant-btn {
+  border-radius: 12px;
+  font-weight: 700;
+}
+
+.ant-input,
+.ant-input-affix-wrapper,
+.ant-select-selector,
+.ant-upload.ant-upload-drag {
+  border-radius: 16px !important;
+}
+
+.ant-table-wrapper .ant-table {
+  border-radius: 18px;
+  background: rgba(255, 252, 244, 0.9);
+}
+
+.ant-table-wrapper .ant-table-thead > tr > th {
+  color: var(--atlas-ink);
+  background: rgba(239, 229, 210, 0.76);
+  font-weight: 900;
+}
+
+.ant-tag {
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+@media (max-width: 960px) {
+  .app-sider.ant-layout-sider {
+    position: relative;
+    height: auto;
+  }
+
+  .app-content.ant-layout-content {
+    padding: 14px;
+  }
+}

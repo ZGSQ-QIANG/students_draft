@@ -7,14 +7,16 @@ from sqlalchemy.orm import Session
 
 from app.models import Resume
 from app.services.audit import create_log
+from app.services.dictionaries import STUDENT_MODE
 from app.services.llm_extractor import LLMExtractor
 from app.services.normalizer import Normalizer
 from app.services.parser import DocumentParser
-from app.services.portrait import PortraitEngine
+from app.services.portrait import build_portrait_engine
 from app.services.repository import ResumeRepository
 from app.services.rule_extractor import RuleExtractor
 from app.services.segmenter import SectionSegmenter
-from app.services.vectorize import Vectorizer
+from app.services.student_semantic_index import StudentSemanticIndexService
+from app.services.student_identity import StudentIdentityService
 
 
 class ResumePipeline:
@@ -26,33 +28,40 @@ class ResumePipeline:
         self.rule_extractor = RuleExtractor()
         self.llm_extractor = LLMExtractor()
         self.normalizer = Normalizer()
-        self.portrait_engine = PortraitEngine()
-        self.vectorizer = Vectorizer()
+        self.semantic_index = StudentSemanticIndexService(db)
+        self.identity_service = StudentIdentityService(db)
 
     def run(self, resume_id: int) -> None:
         resume = self.db.get(Resume, resume_id)
         if not resume:
             return
         try:
+            resume.analysis_status = "parsing"
             self._parse(resume)
             sections = self._segment(resume)
             extracted = self._extract(resume, sections)
             normalized = self.normalizer.normalize(extracted)
+            resume.analysis_mode = STUDENT_MODE
             portrait = self.llm_extractor.generate_portrait(normalized, sections)
-            normalized["portrait"] = {**portrait, **self.portrait_engine.build({**normalized, "portrait": portrait})}
+            portrait_engine = build_portrait_engine()
+            normalized["portrait"] = {**portrait, **portrait_engine.build({**normalized, "portrait": portrait})}
             self.repository.replace_structured_data(resume, normalized)
-            self.repository.replace_embeddings(resume, self._build_embeddings(resume, normalized))
+            self.db.flush()
+            self.identity_service.resolve_resume(resume)
             resume.extract_status = "completed"
             resume.parse_status = "completed"
+            resume.analysis_status = "completed"
             resume.last_error_stage = None
             resume.last_error_message = None
             self.db.commit()
+            self.semantic_index.reindex_resume(resume.id)
         except Exception as exc:
             self.db.rollback()
             failed_resume = self.db.get(Resume, resume_id)
             if failed_resume:
                 failed_resume.parse_status = "failed"
                 failed_resume.extract_status = "failed"
+                failed_resume.analysis_status = "failed"
                 failed_resume.last_error_stage = failed_resume.last_error_stage or "pipeline"
                 failed_resume.last_error_message = str(exc)
                 create_log(
@@ -98,6 +107,7 @@ class ResumePipeline:
 
     def _extract(self, resume: Resume, sections: dict[str, list[str]]) -> dict[str, Any]:
         resume.extract_status = "extracting"
+        resume.analysis_status = "extracting"
         rule_payload = self.rule_extractor.extract(sections)
         create_log(self.db, resume.id, "rule_extract", output=rule_payload)
         internships = self.llm_extractor.enrich_experiences("internship", sections.get("internship", []), rule_payload["internships"])
@@ -113,43 +123,3 @@ class ResumePipeline:
         )
         resume.extract_status = "extracted"
         return combined
-
-    def _build_embeddings(self, resume: Resume, payload: dict[str, Any]) -> list[dict[str, Any]]:
-        items = []
-        if resume.raw_text:
-            items.append(
-                {
-                    "resume_id": resume.id,
-                    "section_id": None,
-                    "doc_type": "resume_full",
-                    "text": resume.raw_text,
-                    "metadata_json": {"file_name": resume.source_file_name},
-                    "embedding": self.vectorizer.embed(resume.raw_text),
-                }
-            )
-        for section in resume.sections:
-            if section.section_type in {"project", "internship"}:
-                items.append(
-                    {
-                        "resume_id": resume.id,
-                        "section_id": section.id,
-                        "doc_type": section.section_type,
-                        "text": section.raw_content,
-                        "metadata_json": {"section_type": section.section_type},
-                        "embedding": self.vectorizer.embed(section.raw_content),
-                    }
-                )
-        portrait_summary = payload.get("portrait", {}).get("portrait_summary")
-        if portrait_summary:
-            items.append(
-                {
-                    "resume_id": resume.id,
-                    "section_id": None,
-                    "doc_type": "portrait",
-                    "text": portrait_summary,
-                    "metadata_json": {"student_type": payload.get("portrait", {}).get("student_type")},
-                    "embedding": self.vectorizer.embed(portrait_summary),
-                }
-            )
-        return items
-

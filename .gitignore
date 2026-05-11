@@ -8,13 +8,17 @@ backend/student_portrait.db
 backend/storage/
 .env
 backend/.env
-backend/.env.example
+/storage/
+storage/
 
 # --------------------
 # 1. 安全/隐私文件 (最重要！)
 # --------------------
 .env
 .env.*
+!.env.example
+!backend/.env.example
+!frontend/.env.example
 *.key
 secrets.json
 

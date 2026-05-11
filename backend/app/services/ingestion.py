@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.models import Resume
+from app.services.dictionaries import STUDENT_MODE
 from app.services.pipeline import ResumePipeline
 from app.services.repository import ResumeRepository
 
@@ -22,7 +23,7 @@ class IngestionService:
         self.pipeline = ResumePipeline(db)
         self.settings = get_settings()
 
-    def save_uploads(self, files: list[UploadFile]) -> tuple[str, list[Resume]]:
+    def save_uploads(self, files: list[UploadFile], analysis_mode: str = STUDENT_MODE) -> tuple[str, list[Resume]]:
         batch_id = uuid.uuid4().hex[:12]
         resumes: list[Resume] = []
         for file in files:
@@ -39,6 +40,7 @@ class IngestionService:
                 file_name=file.filename or target_path.name,
                 file_path=str(target_path),
                 file_type=suffix.replace(".", ""),
+                analysis_mode=analysis_mode,
             )
             resumes.append(resume)
         self.db.commit()
@@ -48,4 +50,3 @@ class IngestionService:
 
     def process_resume(self, resume_id: int) -> None:
         self.pipeline.run(resume_id)
-

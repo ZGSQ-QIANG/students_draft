@@ -55,4 +55,3 @@ class DocumentParser:
             return ParsedDocument(raw_text=text, ocr_text=text, page_texts=[text])
         except Exception:
             return ParsedDocument(raw_text="", ocr_text="", page_texts=[""])
-

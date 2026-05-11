@@ -7,6 +7,21 @@ from sqlalchemy.types import JSON
 from app.models.base import Base, TimestampMixin
 
 
+class Student(TimestampMixin, Base):
+    __tablename__ = "student"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    analysis_mode: Mapped[str] = mapped_column(String(32), default="student", index=True)
+    dedup_fingerprint: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    dedup_status: Mapped[str] = mapped_column(String(32), default="resolved", index=True)
+    display_name: Mapped[str | None] = mapped_column(String(100))
+    school_name: Mapped[str | None] = mapped_column(String(255))
+    major: Mapped[str | None] = mapped_column(String(255))
+    graduation_date: Mapped[str | None] = mapped_column(String(32))
+
+    resumes = relationship("Resume", back_populates="student")
+
+
 class StudentBasicInfo(TimestampMixin, Base):
     __tablename__ = "student_basic_info"
 
@@ -20,6 +35,8 @@ class StudentBasicInfo(TimestampMixin, Base):
     highest_degree: Mapped[str | None] = mapped_column(String(32))
     graduation_date: Mapped[str | None] = mapped_column(String(32))
     political_status: Mapped[str | None] = mapped_column(String(50))
+    research_interest: Mapped[str | None] = mapped_column(Text)
+    target_research_direction: Mapped[str | None] = mapped_column(Text)
     evidence_json: Mapped[dict[str, Any] | None] = mapped_column(JSON)
 
     resume = relationship("Resume", back_populates="basic_info")
@@ -110,6 +127,53 @@ class StudentAward(TimestampMixin, Base):
     resume = relationship("Resume", back_populates="awards")
 
 
+class StudentPaper(TimestampMixin, Base):
+    __tablename__ = "student_paper"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    resume_id: Mapped[int] = mapped_column(ForeignKey("resume.id", ondelete="CASCADE"), index=True)
+    title: Mapped[str | None] = mapped_column(String(255))
+    role: Mapped[str | None] = mapped_column(String(100))
+    publication_type: Mapped[str | None] = mapped_column(String(100))
+    status: Mapped[str | None] = mapped_column(String(100))
+    publish_date: Mapped[str | None] = mapped_column(String(32))
+    description: Mapped[str | None] = mapped_column(Text)
+    evidence_json: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+
+    resume = relationship("Resume", back_populates="papers")
+
+
+class StudentPatent(TimestampMixin, Base):
+    __tablename__ = "student_patent"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    resume_id: Mapped[int] = mapped_column(ForeignKey("resume.id", ondelete="CASCADE"), index=True)
+    patent_name: Mapped[str | None] = mapped_column(String(255))
+    patent_type: Mapped[str | None] = mapped_column(String(100))
+    role: Mapped[str | None] = mapped_column(String(100))
+    status: Mapped[str | None] = mapped_column(String(100))
+    application_date: Mapped[str | None] = mapped_column(String(32))
+    description: Mapped[str | None] = mapped_column(Text)
+    evidence_json: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+
+    resume = relationship("Resume", back_populates="patents")
+
+
+class StudentCompetition(TimestampMixin, Base):
+    __tablename__ = "student_competition"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    resume_id: Mapped[int] = mapped_column(ForeignKey("resume.id", ondelete="CASCADE"), index=True)
+    competition_name: Mapped[str | None] = mapped_column(String(255))
+    award_level: Mapped[str | None] = mapped_column(String(100))
+    role: Mapped[str | None] = mapped_column(String(100))
+    competition_date: Mapped[str | None] = mapped_column(String(32))
+    description: Mapped[str | None] = mapped_column(Text)
+    evidence_json: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+
+    resume = relationship("Resume", back_populates="competitions")
+
+
 class StudentSkill(TimestampMixin, Base):
     __tablename__ = "student_skill"
 
@@ -129,10 +193,14 @@ class StudentPortrait(TimestampMixin, Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     resume_id: Mapped[int] = mapped_column(ForeignKey("resume.id", ondelete="CASCADE"), unique=True)
+    portrait_mode: Mapped[str | None] = mapped_column(String(32))
     student_type: Mapped[str | None] = mapped_column(String(100))
     capability_tags: Mapped[list[str] | None] = mapped_column(JSON)
     behavior_tags: Mapped[list[str] | None] = mapped_column(JSON)
     job_direction_tags: Mapped[list[str] | None] = mapped_column(JSON)
+    research_direction_tags: Mapped[list[str] | None] = mapped_column(JSON)
+    method_tags: Mapped[list[str] | None] = mapped_column(JSON)
+    academic_potential_tags: Mapped[list[str] | None] = mapped_column(JSON)
     strengths: Mapped[list[str] | None] = mapped_column(JSON)
     risks_or_gaps: Mapped[list[str] | None] = mapped_column(JSON)
     portrait_summary: Mapped[str | None] = mapped_column(Text)
@@ -185,3 +253,55 @@ class EmbeddingIndex(TimestampMixin, Base):
 
     resume = relationship("Resume", back_populates="embeddings")
 
+
+class StudentResumeChunk(TimestampMixin, Base):
+    __tablename__ = "student_resume_chunk"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    resume_id: Mapped[int] = mapped_column(ForeignKey("resume.id", ondelete="CASCADE"), index=True)
+    analysis_mode: Mapped[str] = mapped_column(String(32), default="student", index=True)
+    chunk_type: Mapped[str] = mapped_column(String(50), index=True)
+    source_table: Mapped[str] = mapped_column(String(64))
+    source_row_id: Mapped[int | None] = mapped_column(Integer, index=True)
+    chunk_order: Mapped[int] = mapped_column(Integer, default=0)
+    content_text: Mapped[str] = mapped_column(Text)
+    metadata_json: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    index_status: Mapped[str] = mapped_column(String(32), default="pending", index=True)
+
+    resume = relationship("Resume", back_populates="resume_chunks")
+
+
+class StudentFacultyMatch(TimestampMixin, Base):
+    __tablename__ = "student_faculty_match"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    resume_id: Mapped[int] = mapped_column(ForeignKey("resume.id", ondelete="CASCADE"), index=True)
+    faculty_id: Mapped[int | None] = mapped_column(Integer, index=True)
+    direction_score: Mapped[float | None] = mapped_column(Float)
+    method_score: Mapped[float | None] = mapped_column(Float)
+    background_score: Mapped[float | None] = mapped_column(Float)
+    potential_score: Mapped[float | None] = mapped_column(Float)
+    total_score: Mapped[float | None] = mapped_column(Float)
+    match_level: Mapped[str | None] = mapped_column(String(50))
+    match_reason: Mapped[str | None] = mapped_column(Text)
+    evidence_json: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+
+    resume = relationship("Resume", back_populates="faculty_matches")
+
+
+class StudentJobMatch(TimestampMixin, Base):
+    __tablename__ = "student_job_match"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    resume_id: Mapped[int] = mapped_column(ForeignKey("resume.id", ondelete="CASCADE"), index=True)
+    job_id: Mapped[int | None] = mapped_column(Integer, index=True)
+    direction_score: Mapped[float | None] = mapped_column(Float)
+    skill_score: Mapped[float | None] = mapped_column(Float)
+    experience_score: Mapped[float | None] = mapped_column(Float)
+    potential_score: Mapped[float | None] = mapped_column(Float)
+    total_score: Mapped[float | None] = mapped_column(Float)
+    match_level: Mapped[str | None] = mapped_column(String(50))
+    match_reason: Mapped[str | None] = mapped_column(Text)
+    evidence_json: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+
+    resume = relationship("Resume", back_populates="job_matches")

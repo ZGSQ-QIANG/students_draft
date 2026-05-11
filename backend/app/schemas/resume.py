@@ -1,6 +1,6 @@
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.schemas.common import EvidenceSpan, ORMModel
 
@@ -9,13 +9,21 @@ class ResumeUploadItem(BaseModel):
     resume_id: int
     file_name: str
     status: str
+    analysis_mode: str
 
 
 class ResumeListItem(ORMModel):
     id: int
+    student_id: int | None = None
     batch_id: str | None
     source_file_name: str
     file_type: str
+    student_name: str | None = None
+    school_name: str | None = None
+    major: str | None = None
+    student_type: str | None = None
+    analysis_mode: str
+    analysis_status: str
     parse_status: str
     extract_status: str
     last_error_stage: str | None = None
@@ -32,6 +40,8 @@ class BasicInfoPayload(ORMModel):
     highest_degree: str | None = None
     graduation_date: str | None = None
     political_status: str | None = None
+    research_interest: str | None = None
+    target_research_direction: str | None = None
     evidence_json: dict[str, Any] | None = None
 
 
@@ -104,16 +114,73 @@ class SkillPayload(ORMModel):
     evidence_json: dict[str, Any] | None = None
 
 
+class PaperPayload(ORMModel):
+    title: str | None = None
+    role: str | None = None
+    publication_type: str | None = None
+    status: str | None = None
+    publish_date: str | None = None
+    description: str | None = None
+    evidence_json: dict[str, Any] | None = None
+
+
+class PatentPayload(ORMModel):
+    patent_name: str | None = None
+    patent_type: str | None = None
+    role: str | None = None
+    status: str | None = None
+    application_date: str | None = None
+    description: str | None = None
+    evidence_json: dict[str, Any] | None = None
+
+
+class CompetitionPayload(ORMModel):
+    competition_name: str | None = None
+    award_level: str | None = None
+    role: str | None = None
+    competition_date: str | None = None
+    description: str | None = None
+    evidence_json: dict[str, Any] | None = None
+
+
 class PortraitPayload(ORMModel):
+    portrait_mode: str | None = None
     student_type: str | None = None
     capability_tags: list[str] | None = None
     behavior_tags: list[str] | None = None
     job_direction_tags: list[str] | None = None
+    research_direction_tags: list[str] | None = None
+    method_tags: list[str] | None = None
+    academic_potential_tags: list[str] | None = None
     strengths: list[str] | None = None
     risks_or_gaps: list[str] | None = None
     portrait_summary: str | None = None
     confidence_score: float | None = None
     evidence_json: dict[str, Any] | None = None
+
+    @field_validator(
+        "capability_tags",
+        "behavior_tags",
+        "job_direction_tags",
+        "research_direction_tags",
+        "method_tags",
+        "academic_potential_tags",
+        "strengths",
+        "risks_or_gaps",
+        mode="before",
+    )
+    @classmethod
+    def normalize_list_fields(cls, value: Any) -> list[str] | None:
+        if value is None:
+            return None
+        if isinstance(value, list):
+            return [str(item).strip() for item in value if str(item).strip()]
+        if isinstance(value, str):
+            text = value.strip()
+            if not text:
+                return []
+            return [text]
+        return [str(value).strip()] if str(value).strip() else []
 
 
 class ResumeSectionPayload(ORMModel):
@@ -140,6 +207,8 @@ class ExtractLogPayload(ORMModel):
 class ResumeDetailResponse(BaseModel):
     id: int
     source_file_name: str
+    analysis_mode: str
+    analysis_status: str
     parse_status: str
     extract_status: str
     current_version: int
@@ -150,6 +219,9 @@ class ResumeDetailResponse(BaseModel):
     internships: list[InternshipPayload]
     projects: list[ProjectPayload]
     awards: list[AwardPayload]
+    papers: list[PaperPayload]
+    patents: list[PatentPayload]
+    competitions: list[CompetitionPayload]
     skills: list[SkillPayload]
     portrait: PortraitPayload | None = None
     last_error_stage: str | None = None
@@ -163,13 +235,57 @@ class ReviewSaveRequest(BaseModel):
     internships: list[InternshipPayload] = Field(default_factory=list)
     projects: list[ProjectPayload] = Field(default_factory=list)
     awards: list[AwardPayload] = Field(default_factory=list)
+    papers: list[PaperPayload] = Field(default_factory=list)
+    patents: list[PatentPayload] = Field(default_factory=list)
+    competitions: list[CompetitionPayload] = Field(default_factory=list)
     skills: list[SkillPayload] = Field(default_factory=list)
     portrait: PortraitPayload | None = None
 
 
 class DictionaryResponse(BaseModel):
+    analysis_modes: list[str]
     degrees: list[str]
     capability_tags: list[str]
     behavior_tags: list[str]
     job_direction_tags: list[str]
+    research_direction_tags: list[str]
+    method_tags: list[str]
+    academic_potential_tags: list[str]
     skill_categories: list[str]
+
+
+class SemanticSearchRequest(BaseModel):
+    query: str = Field(min_length=1)
+    analysis_mode: str = "student"
+    top_k: int | None = None
+    chunk_types: list[str] = Field(default_factory=list)
+
+
+class SemanticSearchChunkPayload(BaseModel):
+    chunk_id: int
+    chunk_type: str
+    score: float
+    distance: float
+    rerank_score: float | None = None
+    cosine_score: float
+    cosine_distance: float
+    keyword_score: float | None = None
+    rrf_score: float | None = None
+    dense_rank: int | None = None
+    keyword_rank: int | None = None
+    retrieval_sources: list[str] = Field(default_factory=list)
+    score_source: str
+    content_text: str
+    metadata: dict[str, Any] | None = None
+
+
+class SemanticSearchResultPayload(BaseModel):
+    student_id: int | None = None
+    resume_id: int
+    student_name: str | None = None
+    school_name: str | None = None
+    major: str | None = None
+    analysis_mode: str
+    student_type: str | None = None
+    best_score: float
+    hits: list[SemanticSearchChunkPayload]

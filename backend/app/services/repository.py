@@ -11,24 +11,30 @@ from app.models import (
     ResumeSection,
     StudentAward,
     StudentBasicInfo,
+    StudentCompetition,
     StudentEducation,
     StudentInternship,
+    StudentPaper,
+    StudentPatent,
     StudentPortrait,
     StudentProject,
     StudentSkill,
 )
+from app.services.dictionaries import STUDENT_MODE
 
 
 class ResumeRepository:
     def __init__(self, db: Session) -> None:
         self.db = db
 
-    def create_resume(self, *, batch_id: str, file_name: str, file_path: str, file_type: str) -> Resume:
+    def create_resume(self, *, batch_id: str, file_name: str, file_path: str, file_type: str, analysis_mode: str = STUDENT_MODE) -> Resume:
         resume = Resume(
             batch_id=batch_id,
             source_file_name=file_name,
             source_file_path=file_path,
             file_type=file_type,
+            analysis_mode=analysis_mode,
+            analysis_status="uploaded",
             parse_status="uploaded",
             extract_status="uploaded",
         )
@@ -66,6 +72,9 @@ class ResumeRepository:
         resume.internships = [StudentInternship(**sanitize(StudentInternship, item)) for item in payload.get("internships", [])]
         resume.projects = [StudentProject(**sanitize(StudentProject, item)) for item in payload.get("projects", [])]
         resume.awards = [StudentAward(**sanitize(StudentAward, item)) for item in payload.get("awards", [])]
+        resume.papers = [StudentPaper(**sanitize(StudentPaper, item)) for item in payload.get("papers", [])]
+        resume.patents = [StudentPatent(**sanitize(StudentPatent, item)) for item in payload.get("patents", [])]
+        resume.competitions = [StudentCompetition(**sanitize(StudentCompetition, item)) for item in payload.get("competitions", [])]
         resume.skills = [StudentSkill(**sanitize(StudentSkill, item)) for item in payload.get("skills", [])]
         upsert_single("portrait", StudentPortrait, payload.get("portrait"))
 
